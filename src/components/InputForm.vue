@@ -1,145 +1,196 @@
 <template>
-  <form @submit.prevent="submitForm" class="form-container">
-    <div class="form-group">
-      <label for="descripcion_negocio">Descripción del Negocio:</label>
-      <textarea 
-        id="descripcion_negocio" 
-        v-model="descripcion_negocio" 
-        @input="validateDescription" 
-        maxlength="200" 
-        required>
-      </textarea>
+  <div class="form-wrapper" :class="{ 'collapsed': isCollapsed }">
+    <form v-if="!isCollapsed" @submit.prevent="submitForm" class="form-container">
+      <div class="form-group">
+        <div class="user-icon" @click="toggleCollapse">
+          <img src="../assets/user-logo.svg" alt="User Logo" class="icon-image" />
+        </div>
+        <div class="input-container">
+          <label for="descripcion_completa" class="input-label">Tu Mensaje:</label>
+          <textarea 
+            id="descripcion_completa" 
+            v-model="descripcion_completa" 
+            @input="validateDescription" 
+            maxlength="500" 
+            required
+            placeholder="Describe tu negocio, el monto de inversión, y tu objetivo o pregunta específica."
+            class="input-textarea"
+          ></textarea>
+        </div>
+        <button type="submit" class="submit-button">
+          <img src="../assets/send-icon.png" alt="Enviar" class="send-icon" />
+        </button>
+      </div>
       <small v-if="descripcionError" class="error-message">{{ descripcionError }}</small>
+    </form>
+    <div v-else class="collapsed-icon" @click="toggleCollapse">
+      <img src="../assets/user-logo.svg" alt="User Logo" class="icon-image" />
     </div>
-    <div class="form-group">
-      <label for="monto_inversion">Monto de Inversión:</label>
-      <input 
-        type="number" 
-        id="monto_inversion" 
-        v-model="monto_inversion" 
-        @input="validateMonto" 
-        required />
-      <small v-if="montoError" class="error-message">{{ montoError }}</small>
-    </div>
-    <div class="form-group">
-      <label for="pregunta">Pregunta Específica:</label>
-      <input 
-        type="text" 
-        id="pregunta" 
-        v-model="pregunta" 
-        @input="validatePregunta" 
-        maxlength="100" 
-        required />
-      <small v-if="preguntaError" class="error-message">{{ preguntaError }}</small>
-    </div>
-    <button type="submit" class="submit-button">Enviar</button>
-  </form>
+  </div>
 </template>
 
 <script>
 export default {
   data() {
     return {
-      descripcion_negocio: '',
-      monto_inversion: '',
-      pregunta: '',
+      descripcion_completa: '',
       descripcionError: '',
-      montoError: '',
-      preguntaError: ''
+      isCollapsed: false
     };
   },
   methods: {
     validateDescription() {
-      const regex = /^[A-Za-z0-9\s]*$/;
-      if (!regex.test(this.descripcion_negocio)) {
-        this.descripcionError = 'La descripción solo debe contener letras y números, sin símbolos.';
+      const regex = /^[A-Za-z0-9\sñÑáéíóúÁÉÍÓÚ.$,%?!¿()]*$/;
+      if (!regex.test(this.descripcion_completa)) {
+        this.descripcionError = 'El mensaje solo debe contener letras, números, espacios, y los signos permitidos.';
       } else {
         this.descripcionError = '';
       }
     },
-    validateMonto() {
-      if (this.monto_inversion < 0 || isNaN(this.monto_inversion)) {
-        this.montoError = 'El monto de inversión debe ser un número positivo.';
-      } else {
-        this.montoError = '';
-      }
-    },
-    validatePregunta() {
-      const regex = /^[A-Za-z0-9\s]*$/;
-      if (!regex.test(this.pregunta)) {
-        this.preguntaError = 'La pregunta solo debe contener letras y números, sin símbolos.';
-      } else {
-        this.preguntaError = '';
-      }
-    },
     submitForm() {
       this.validateDescription();
-      this.validateMonto();
-      this.validatePregunta();
       
-      if (!this.descripcionError && !this.montoError && !this.preguntaError) {
-        const inputData = {
-          descripcion_negocio: this.descripcion_negocio,
-          monto_inversion: this.monto_inversion,
-          pregunta: this.pregunta
-        };
-        this.$emit('form-submit', inputData);
+      if (!this.descripcionError) {
+        this.$emit('start-loading');
+        this.$emit('clear-result');
+        this.$emit('form-submit', {
+          descripcion_completa: this.descripcion_completa
+        });
       }
+    },
+    toggleCollapse() {
+      this.isCollapsed = !this.isCollapsed;
+      this.$emit('toggle-collapse', this.isCollapsed); 
     }
   }
 };
 </script>
 
 <style scoped>
+.form-wrapper {
+  display: flex;
+  justify-content: flex-start; 
+  padding: 20px;
+  transition: max-width 0.3s ease;
+}
+
+.form-wrapper.collapsed {
+  max-width: 50px;
+  cursor: pointer;
+}
+
 .form-container {
   display: flex;
-  flex-direction: column;
+  align-items: flex-start;
   gap: 15px;
   padding: 20px;
-  background-color: #f9f9f9;
-  border-radius: 8px;
+  background-color: #f5f5f5;
+  border-radius: 10px;
+  width: 100%;
   max-width: 500px;
-  margin: auto;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .form-group {
   display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+}
+
+.user-icon, .collapsed-icon {
+  flex-shrink: 0;
+}
+
+.icon-image {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+}
+
+.input-container {
+  flex-grow: 1;
+  display: flex;
   flex-direction: column;
-  gap: 5px;
 }
 
-label {
+.input-label {
+  font-family: 'Telidon', Arial, sans-serif;
   font-weight: bold;
-  color: #333;
+  color: #1e7145; 
+  font-size: 16px; 
+  margin-bottom: 5px;
 }
 
-textarea,
-input[type="number"],
-input[type="text"] {
+.input-textarea {
+  width: 100%; 
   padding: 10px;
-  font-size: 16px;
-  border-radius: 4px;
+  font-size: 14px;
+  border-radius: 5px; 
   border: 1px solid #ccc;
+  min-height: 80px; 
+  transition: border-color 0.5s ease, box-shadow 0.5s ease;
+}
+
+.input-textarea:focus {
+  border-color: #1084b9;
+  box-shadow: 0 0 8px rgba(38, 119, 151, 0.4);
+  outline: none;
 }
 
 .submit-button {
-  padding: 12px;
-  font-size: 18px;
-  background-color: #4CAF50;
-  color: white;
+  padding: 10px;
   border: none;
-  border-radius: 5px;
+  background-color: #78b830;
+  color: white;
   cursor: pointer;
-  transition: background-color 0.3s;
+  flex-shrink: 0;
+  border-radius: 50%;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10px; /* Espacio arriba del botón */
+  height: 40px;
+  width: 40px;
 }
 
 .submit-button:hover {
-  background-color: #45a049;
+  background-color: #87d32f;
+  transform: scale(1.1);
+}
+
+.send-icon {
+  width: 20px;
+  height: 20px;
 }
 
 .error-message {
   color: red;
   font-size: 12px;
-  margin-top: -5px;
+  margin-top: 5px;
+}
+
+/* Diseño responsivo */
+@media (max-width: 768px) {
+  .form-container {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px;
+  }
+
+  .form-group {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .user-icon {
+    margin-bottom: 10px;
+  }
+
+  .submit-button {
+    align-self: center;
+    margin-top: 15px;
+  }
 }
 </style>

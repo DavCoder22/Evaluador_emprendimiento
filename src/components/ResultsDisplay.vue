@@ -1,109 +1,173 @@
 <template>
   <div class="results-container">
-    <h2>Resultado del Análisis de Viabilidad</h2>
-    <div v-if="result">
-      <div>
-        <strong>Viabilidad:</strong> {{ parsedResult.Viabilidad }}
-      </div>
-      <div>
-        <strong>Justificación:</strong> {{ parsedResult.Justificación }}
-      </div>
-      <div>
-        <h3>Plan de Financiación:</h3>
-        <ul>
-          <li><strong>Monto de Inversión:</strong> {{ parsedResult["Plan de Financiación"]["Monto de Inversión"] }}</li>
-          <li><strong>ROE (Return on Equity):</strong> {{ parsedResult["Plan de Financiación"].ROE }}</li>
-          <li><strong>ROA (Return on Assets):</strong> {{ parsedResult["Plan de Financiación"].ROA }}</li>
-          <li><strong>Endeudamiento:</strong> {{ parsedResult["Plan de Financiación"].Endeudamiento }}</li>
-        </ul>
-      </div>
-      <div>
-        <h3>Proyección de la Empresa:</h3>
-        <ul>
-          <li><strong>Año 1:</strong> {{ formatProjection(parsedResult["Proyección de la Empresa"]["Año 1"]) }}</li>
-          <li><strong>Año 2:</strong> {{ formatProjection(parsedResult["Proyección de la Empresa"]["Año 2"]) }}</li>
-          <li><strong>Año 3:</strong> {{ formatProjection(parsedResult["Proyección de la Empresa"]["Año 3"]) }}</li>
-        </ul>
-      </div>
-      <div>
-        <h3>Recomendaciones:</h3>
-        <ul>
-          <li v-for="(recommendation, index) in parsedResult.Recomendaciones" :key="index">
-            {{ recommendation }}
-          </li>
-        </ul>
-      </div>
-      <div v-if="parsedResult['Respuesta Fuera de Contexto']">
-        <strong>Respuesta Fuera de Contexto:</strong> {{ parsedResult['Respuesta Fuera de Contexto'] }}
-      </div>
+    <h2>Resultados de la Evaluación</h2>
+    <div v-if="loading" class="loading-spinner">
+      <div class="spinner"></div>
+      <p>Cargando...</p>
     </div>
-    <div v-else>
-      <p>No se ha recibido ningún resultado.</p>
+    <div v-else class="result-content">
+      <div class="ia-icon">
+        <img src="../assets/ia-icon.png" alt="IA Icon" />
+      </div>
+      <!-- Render Markdown content as HTML -->
+      <div v-html="formattedResponse" class="markdown-result"></div>
     </div>
   </div>
 </template>
 
 <script>
+import { ref, watch } from 'vue';
+import { marked } from 'marked';
+
 export default {
-  name: 'ResultsDisplay',
   props: {
     result: {
       type: Object,
+      default: () => ({}),
+    },
+    loading: {
+      type: Boolean,
       required: true
     }
   },
-  computed: {
-    parsedResult() {
-      try {
-        // Elimina cualquier bloque de código que pueda estar alrededor del JSON
-        const cleanedText = this.result.outputs[0].outputs[0].results.message.data.text.replace(/```json|```/g, '');
-        return JSON.parse(cleanedText);
-      } catch (error) {
-        console.error('Error al parsear el JSON:', error);
-        return null;
+  setup(props) {
+    const formattedResponse = ref('');
+
+    const processResult = (result) => {
+      if (result && result.outputs) {
+        try {
+          const responseText = result.outputs[0].outputs[0].results.message.text;
+          // Convertir el texto de Markdown a HTML
+          formattedResponse.value = marked(responseText);
+        } catch (e) {
+          console.error('Error processing result:', e);
+          formattedResponse.value = 'Hubo un error al procesar la respuesta.';
+        }
       }
-    }
-  },
-  methods: {
-    formatProjection(projection) {
-      if (!projection) return 'No hay suficiente información.';
-      return `Ingresos: ${projection.Ingresos}, Gastos: ${projection.Gastos}, Utilidad Bruta: ${projection["Utilidad Bruta"]}, Utilidad Neta: ${projection["Utilidad Neta"]}`;
-    }
+    };
+
+    watch(
+      () => props.result,
+      (newVal) => {
+        if (newVal) {
+          processResult(newVal);
+        }
+      },
+      { immediate: true }
+    );
+
+    return {
+      formattedResponse
+    };
   }
 };
 </script>
 
 <style scoped>
 .results-container {
-  background-color: #f9f9f9;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  max-width: 600px;
-  margin: auto;
+  margin-top: 20px;
+  font-family: 'Telidon', Arial, sans-serif;
 }
 
-h2 {
-  font-size: 24px;
-  color: #2c3e50;
-  margin-bottom: 20px;
+.loading-spinner {
+  text-align: center;
+  font-size: 18px;
+  color: #555;
 }
 
-h3 {
-  font-size: 20px;
-  margin-top: 15px;
+.spinner {
+  margin: 20px auto;
+  width: 40px;
+  height: 40px;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #4CAF50;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
-ul {
-  list-style-type: none;
-  padding: 0;
+.result-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  margin-top: 20px;
 }
 
-li {
+.ia-icon img {
+  width: 40px;
+  height: 40px;
+}
+
+.markdown-result {
+  flex-grow: 1;
+  text-align: left;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 120px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  font-family: 'Telidon', Arial, sans-serif;
+  font-size: 16px; 
+  line-height: 1.6; 
+  color: #333; 
+}
+
+.markdown-result h1,
+.markdown-result h2,
+.markdown-result h3 {
+  font-family: 'Telidon', Arial, sans-serif;
+  font-weight: 600;
+  margin-top: 20px;
   margin-bottom: 10px;
+  color: #2c3e50;
 }
 
-strong {
-  color: #333;
+.markdown-result p {
+  margin-bottom: 15px;
+}
+
+.markdown-result table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.markdown-result th,
+.markdown-result td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.markdown-result th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+.markdown-result ul {
+  padding-left: 20px;
+  margin-bottom: 15px;
+}
+
+.markdown-result li {
+  margin-bottom: 5px;
+}
+
+.markdown-result::-webkit-scrollbar {
+  width: 10px;
+}
+
+.markdown-result::-webkit-scrollbar-thumb {
+  background-color: #888;
+  border-radius: 10px;
+}
+
+.markdown-result::-webkit-scrollbar-thumb:hover {
+  background-color: #555;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>
