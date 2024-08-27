@@ -35,7 +35,8 @@ export default {
     return {
       descripcion_completa: '',
       descripcionError: '',
-      isCollapsed: false
+      isCollapsed: false,
+      tipoAnalisis: ', dame con análisis de factibilidad con indicadores financieros.' // Valor por defecto para el análisis
     };
   },
   methods: {
@@ -54,7 +55,8 @@ export default {
         this.$emit('start-loading');
         this.$emit('clear-result');
         this.$emit('form-submit', {
-          descripcion_completa: this.descripcion_completa
+          descripcion_completa: this.descripcion_completa,
+          tipoAnalisis: this.tipoAnalisis // Incluye el tipo de análisis en el envío del formulario
         });
       }
     },
@@ -65,6 +67,7 @@ export default {
   }
 };
 </script>
+
 
 <style scoped>
 .form-wrapper {
